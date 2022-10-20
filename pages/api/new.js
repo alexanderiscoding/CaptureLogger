@@ -45,12 +45,7 @@ export default async function handler(req, res) {
     })
     .then(async function (response) {
       if(telegramBotToken != ""){
-        let message;
-        if(req.body.application){
-          message = "Um novo CaptureLogger foi registrado %0aAplicação: " + req.body.application + " %0aID: " + response.data + "%0atipo: " + type + "%0alog: " + log;
-        }else{
-          message = "Um novo CaptureLogger foi registrado %0aID: " + response.data + "%0atipo: " + type + "%0alog: " + log;
-        }
+        let message = "Um novo CaptureLogger foi registrado %0aID: " + response.data + "%0atipo: " + type;
         await axios.post('https://api.telegram.org/bot' + telegramBotToken + '/sendMessage?chat_id=' + telegramIDGroup + '&text=' + message);
       }
       res.status(200).send(response.data);
