@@ -16,7 +16,7 @@ export default async (req, res) => {
     const axios = require('axios');
     axios({
         method: 'post',
-        url: CRUDHost + '/api/delete',
+        url: CRUDHost + '/api/read',
         headers: { 'authorization': CRUDToken },
         data: {
             table: {

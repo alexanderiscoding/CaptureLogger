@@ -9,22 +9,31 @@ export default async (req, res) => {
     if (authorization != token) {
         return res.status(401).json({ message: 'Invalid Authentication Credentials' });
     }
-    const id = req.body.id;
-    if (id == '' || id == undefined) {
-        return res.status(401).json({ message: 'Missing ID Logger' });
+    const type = req.body.type;
+    if (type == '' || type == undefined) {
+        return res.status(401).json({ message: 'Missing Type Logger' });
+    }
+    const timestamp = req.body.timestamp;
+    if (timestamp == null || timestamp == undefined) {
+        return res.status(401).json({ message: 'Missing Timestamp Logger' });
     }
     const axios = require('axios');
     axios({
         method: 'post',
-        url: CRUDHost + '/api/delete',
+        url: CRUDHost + '/api/pagination',
         headers: { 'authorization': CRUDToken },
         data: {
             table: {
                 name: "CaptureLogger"
             },
             column: {
-                id: id
-            }
+                where: "true",
+                name: "type",
+                operator: "==",
+                value: type,
+                timestamp: timestamp,
+                limit: 20
+            },
         }
     })
     .then(function (response) {
