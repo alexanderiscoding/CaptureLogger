@@ -3,7 +3,6 @@ import axios from 'axios'
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  console.log(req.body);
   if (!req.headers.authorization || req.headers.authorization.indexOf('Bearer ') === -1) {
       return res.status(401).json({ message: 'Missing Authorization Header' });
   }
@@ -28,10 +27,13 @@ export default async function handler(req, res) {
         type: type,
         log: log,
         application: req.body.application,
+        filename: req.body.filename,
+        line: req.body.line,
+        network: req.body.network,
         host: req.body.host,
         data: req.body.data,
         version: req.body.version,
-        userid: req.body.userid,
+        uniqueId: req.body.uniqueId,
         brand: req.body.brand,
         model: req.body.model,
         systemName: req.body.systemName,
@@ -45,8 +47,19 @@ export default async function handler(req, res) {
     })
     .then(async function (response) {
       if(telegramBotToken != ""){
-        let message = "Um novo CaptureLogger foi registrado %0aID: " + response.data + "%0atipo: " + type;
-        await axios.post('https://api.telegram.org/bot' + telegramBotToken + '/sendMessage?chat_id=' + telegramIDGroup + '&text=' + message);
+        let message;
+        if(req.body.message){
+          if(req.body.application){
+            message = "Um novo CaptureLogger foi registrado %0aApplication: " + req.body.application + " %0aID: " + response.data + "%0aType: " + type + "%0aMessage: " + req.body.message;
+          }else{
+            message = "Um novo CaptureLogger foi registrado %0aID: " + response.data + "%0aType: " + type + "%0aMessage: " + req.body.message;
+          }
+        }else{
+          message = "Um novo CaptureLogger foi registrado %0aID: " + response.data + "%0aType: " + type;
+        }        
+        await axios.post('https://api.telegram.org/bot' + telegramBotToken + '/sendMessage?chat_id=' + telegramIDGroup + '&text=' + message).catch(function (error) {
+          res.status(500).send(error);
+        });
       }
       res.status(200).send(response.data);
     })
