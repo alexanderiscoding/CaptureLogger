@@ -1,26 +1,25 @@
 import { token, CRUDHost, CRUDToken, telegramBotToken, telegramIDGroup } from '../../config';
-import axios from 'axios'
 
-export default async function handler(req, res) {
+export default function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  console.log(req);
-  if (!req.headers.authorization || req.headers.authorization.indexOf('Bearer ') === -1) {
-      return res.status(401).json({ message: 'Missing Authorization Header' });
+  if (req.headers.authorization != token) {
+    return res.status(401).json("Invalid Authentication Credentials");
   }
-  const authorization = req.headers.authorization.split(' ')[1];
-  if (authorization != token) {
-      return res.status(401).json({ message: 'Invalid Authentication Credentials' });
+  if (req.body.log == undefined) {
+    return res.status(406).json("Missing Text Logger");
   }
-  const log = req.body.log;
-  if (log == '' || log == undefined) {
-      return res.status(401).json({ message: 'Missing Text Logger' });
-  }
-  await axios.post(CRUDHost+'/api/create', {
+  fetch(CRUDHost + '/api/create', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': CRUDToken
+    },
+    body: JSON.stringify({
       table: {
         name: "CaptureLogger"
       },
       column: {
-        log: log,
+        log: req.body.log,
         application: req.body.application,
         filename: req.body.filename,
         line: req.body.line,
@@ -35,30 +34,30 @@ export default async function handler(req, res) {
         systemVersion: req.body.systemVersion,
         timestamp: new Date().getTime()
       }
-    },{
-        headers: {
-          'authorization': CRUDToken
+    })
+  })
+  .then(function(response) {
+    return response.json();
+  })
+  .then(function(data) {
+    if (telegramBotToken != "") {
+      let message;
+      if (req.body.message) {
+        if (req.body.application) {
+          message = "Um novo CaptureLogger foi registrado %0aApplication: " + req.body.application + " %0aID: " + data + "%0aMessage: " + req.body.message;
+        } else {
+          message = "Um novo CaptureLogger foi registrado %0aID: " + data + "%0aMessage: " + req.body.message;
         }
-    })
-    .then(async function (response) {
-      if(telegramBotToken != ""){
-        let message;
-        if(req.body.message){
-          if(req.body.application){
-            message = "Um novo CaptureLogger foi registrado %0aApplication: " + req.body.application + " %0aID: " + response.data + "%0aType: " + type + "%0aMessage: " + req.body.message;
-          }else{
-            message = "Um novo CaptureLogger foi registrado %0aID: " + response.data + "%0aType: " + type + "%0aMessage: " + req.body.message;
-          }
-        }else{
-          message = "Um novo CaptureLogger foi registrado %0aID: " + response.data + "%0aType: " + type;
-        }        
-        await axios.post('https://api.telegram.org/bot' + telegramBotToken + '/sendMessage?chat_id=' + telegramIDGroup + '&text=' + message).catch(function (error) {
-          res.status(500).send(error);
-        });
+      } else {
+        message = "Um novo CaptureLogger foi registrado %0aID: " + data;
       }
-      res.status(200).send(response.data);
-    })
-    .catch(function (error) {
-      res.status(500).send(error);
-    }); 
+      fetch('https://api.telegram.org/bot' + telegramBotToken + '/sendMessage?chat_id=' + telegramIDGroup + '&text=' + message).catch(function (error) {
+        res.status(500).json(error);
+      });
+    }
+    res.status(200).json(data);
+  })
+  .catch(function (error) {
+    res.status(500).json(error);
+  });
 }
