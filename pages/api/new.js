@@ -3,6 +3,7 @@ import axios from 'axios'
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
+  console.log(req);
   if (!req.headers.authorization || req.headers.authorization.indexOf('Bearer ') === -1) {
       return res.status(401).json({ message: 'Missing Authorization Header' });
   }
@@ -10,21 +11,15 @@ export default async function handler(req, res) {
   if (authorization != token) {
       return res.status(401).json({ message: 'Invalid Authentication Credentials' });
   }
-  const type = req.body.type;
-  if (type == '' || type == undefined) {
-      return res.status(401).json({ message: 'Missing Type Logger' });
-  }
   const log = req.body.log;
   if (log == '' || log == undefined) {
       return res.status(401).json({ message: 'Missing Text Logger' });
   }
-  if(['Debug', 'Error', 'Info', 'Log', 'Warn'].includes(type)){
-    await axios.post(CRUDHost+'/api/create', {
+  await axios.post(CRUDHost+'/api/create', {
       table: {
         name: "CaptureLogger"
       },
       column: {
-        type: type,
         log: log,
         application: req.body.application,
         filename: req.body.filename,
@@ -65,8 +60,5 @@ export default async function handler(req, res) {
     })
     .catch(function (error) {
       res.status(500).send(error);
-    });
-  }else{
-    res.status(400).send('Information send is incorrect.');
-  }  
+    }); 
 }
