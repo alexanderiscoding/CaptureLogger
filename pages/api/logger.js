@@ -19,7 +19,7 @@ export default function handler(req, res) {
         name: "CaptureLogger"
       },
       column: {
-        id: id
+        id: req.body.id
       }
     })
   })
