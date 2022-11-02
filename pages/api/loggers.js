@@ -1,18 +1,16 @@
-import { token, CRUDHost, CRUDToken } from '../../config';
-
 export default function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  if (req.headers.authorization != token) {
+  if (req.headers.authorization != process.env.TOKEN) {
     return res.status(401).json("Invalid Authentication Credentials");
   }
   if (req.body.timestamp == undefined) {
     return res.status(406).json("Missing Timestamp Logger");
   }
-  fetch(CRUDHost + '/api/pagination', {
+  return fetch(process.env.CRUD_HOST + '/api/pagination', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': CRUDToken
+      'Authorization': process.env.CRUD_TOKEN
     },
     body: JSON.stringify({
       table: {
@@ -24,10 +22,8 @@ export default function handler(req, res) {
       }
     })
   })
-  .then(function(response) {
-    return response.json();
-  })
-  .then(function(data) {
+  .then(async function (response) {
+    const data = await response.json();
     res.status(200).json(data);
   })
   .catch(function (error) {
