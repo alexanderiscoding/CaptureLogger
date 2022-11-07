@@ -1,12 +1,9 @@
 export default function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  if (req.headers.authorization != process.env.TOKEN) {
-    return res.status(401).json("Invalid Authentication Credentials");
+  if ([req.query.id, req.query.token].includes(undefined)) {
+    return res.status(406).json("Missing Authentication Credentials");
   }
-  if (req.body.timestamp == undefined) {
-    return res.status(406).json("Missing Timestamp Logger");
-  }
-  return fetch(process.env.CRUD_HOST + '/api/pagination', {
+  return fetch(process.env.CRUD_HOST + '/api/read', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json; charset=UTF-8',
@@ -17,14 +14,16 @@ export default function handler(req, res) {
         name: "CaptureLogger"
       },
       column: {
-        timestamp: req.body.timestamp,
-        limit: 20
+        id: req.query.id
       }
     })
   })
   .then(async function (response) {
     const data = await response.json();
-    res.status(200).json(data);
+    if (data.token != req.query.token) {
+      return res.status(401).json("Invalid Authentication Credentials");
+    }
+    res.status(200).json(data.log);
   })
   .catch(function (error) {
     res.status(500).json(error);

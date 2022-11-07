@@ -9,7 +9,7 @@ export default function handler(req, res) {
   return fetch(process.env.CRUD_HOST + '/api/read', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json; charset=UTF-8',
       'Authorization': process.env.CRUD_TOKEN
     },
     body: JSON.stringify({
