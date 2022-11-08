@@ -41,7 +41,7 @@ export default function handler(req, res) {
   .then(async function (response) {
     const data = await response.json();
     if (process.env.SENDER_HOST != undefined) {
-      let structure = sender(req.body.application, req.body.filename, req.body.line, req.body.network, req.body.host, req.body.version, req.body.uniqueId, req.body.brand, req.body.model, req.body.systemName, req.body.systemVersion, req.body.message, data, token, process.env.CRUD_HOST, process.env.SENDER_SERVICE, process.env.SENDER_MODE);
+      let structure = sender(req.body.application, req.body.filename, req.body.line, req.body.network, req.body.host, req.body.version, req.body.uniqueId, req.body.brand, req.body.model, req.body.systemName, req.body.systemVersion, req.body.message, data, token, process.env.HOST, process.env.SENDER_SERVICE, process.env.SENDER_MODE);
       let apiUrl;
       switch (process.env.SENDER_SERVICE) {
         case "1":
