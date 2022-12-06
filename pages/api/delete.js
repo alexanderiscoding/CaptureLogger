@@ -3,7 +3,7 @@ export default function handler(req, res) {
     return res.status(401).json("Invalid Authentication Credentials");
   }
   if (req.body.id == undefined) {
-    return res.status(406).json("Missing ID Logger");
+    return res.status(406).json("Missing ID");
   }
   return fetch(process.env.CLOUD_HOST + '/api/firestore/delete', {
     method: 'POST',
@@ -19,11 +19,9 @@ export default function handler(req, res) {
         id: req.body.id
       }
     })
-  })
-    .then(function () {
-      res.status(200).json("Deleted");
-    })
-    .catch(function (error) {
-      res.status(500).json(error);
-    });
+  }).then(function () {
+    res.status(200).json("Deleted");
+  }).catch(function (error) {
+    res.status(500).json(error);
+  });
 }

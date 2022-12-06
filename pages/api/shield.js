@@ -1,4 +1,62 @@
-async function device(agent) {
+async function create(ipHash, date) {
+  return fetch(process.env.CLOUD_HOST + '/api/database/create', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json; charset=UTF-8',
+      'Authorization': process.env.CLOUD_TOKEN
+    },
+    body: JSON.stringify({
+      name: "CaptureLogger/shield/",
+      id: ipHash,
+      column: {
+        timestamp: date
+      }
+    })
+  }).then(function () {
+    return true;
+  }).catch(function (error) {
+    console.log(error);
+    return false;
+  });
+}
+
+async function check(ip, date, tag) {
+  const { createHash } = await import('node:crypto');
+  const hash = createHash('sha256');
+  hash.update(ip);
+  let ipHash = hash.copy().digest('hex');
+  return fetch(process.env.CLOUD_HOST + '/api/database/read', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json; charset=UTF-8',
+      'Authorization': process.env.CLOUD_TOKEN
+    },
+    body: JSON.stringify({
+      id: 'CaptureLogger/shield/' + ipHash
+    })
+  }).then(async function (response) {
+    const data = await response.json();
+    if (data) {
+      if (data.timestamp == tag) {
+        return true;
+      } else {
+        return false;
+      }
+    } else {
+      let created = await create(ipHash, date);
+      if (created) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+  }).catch(function (error) {
+    console.log(error);
+    return false;
+  });
+}
+
+async function device(agent, ip) {
   const { createHash } = await import('node:crypto');
   const parser = require('ua-parser-js');
   let ua = parser(agent);
@@ -7,7 +65,7 @@ async function device(agent) {
       return false;
     } else {
       const hash = createHash('sha256');
-      hash.update(JSON.stringify([ua.device.vendor, ua.device.model, ua.os.name, ua.os.version]));
+      hash.update(JSON.stringify([ua.device.vendor, ua.device.model, ua.os.name, ua.os.version, ip]));
       return hash.copy().digest('hex');
     }
   } else {
@@ -15,32 +73,39 @@ async function device(agent) {
       return false;
     } else {
       const hash = createHash('sha256');
-      hash.update(JSON.stringify([ua.engine.name, ua.engine.version, ua.os.name, ua.os.version, ua.cpu.architecture]));
+      hash.update(JSON.stringify([ua.engine.name, ua.engine.version, ua.os.name, ua.os.version, ua.cpu.architecture, ip]));
       return hash.copy().digest('hex');
     }
   }
 }
 
+async function tagHash(id, date) {
+  const { createHmac } = await import('node:crypto');
+  const hmac = createHmac('sha256', process.env.TOKEN);
+  hmac.update(JSON.stringify([id, date]));
+  return hmac.digest('hex');
+}
 
 export default async function handler(req, res) {
+  if ([req.headers['user-agent'], req.headers['x-vercel-forwarded-for']].includes(undefined)) {
+    return res.status(406).json("Missing Information");
+  }
+  const date = Date.now() + 30 * 1000;
+  let id = await device(req.headers['user-agent'], req.headers['x-vercel-forwarded-for']);
+  if (!id) {
+    return res.status(401).json("Invalid Device Request");
+  }
   if (req.headers.authorization) {
     if (req.headers.authorization != process.env.ACCESS_TOKEN) {
       return res.status(401).json("Invalid Authentication Credentials");
     }
-    let id = await device(req.headers['user-agent']);
-    if (!id) {
-      return res.status(401).json("Invalid Device Request");
-    }
-    let ip = req.headers['x-vercel-forwarded-for'];
-    if (!ip) {
-      return res.status(401).json("Invalid Device Request");
-    }
-    const { createHmac } = await import('node:crypto');
-    const hmac = createHmac('sha256', process.env.TOKEN);
-    const tag = String(new Date().getTime() + 30 * 1000);
-    hmac.update(JSON.stringify([id, ip, tag]));
-    return res.status(200).json({ tag: tag, hash: hmac.digest('hex') });
   } else {
-    return res.status(200).json('In developement');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    let approved = await check(req.headers['x-vercel-forwarded-for'], date, req.body.tag);
+    if (!approved) {
+      return res.status(401).json("Invalid Authentication Credentials");
+    }
   }
+  let hash = await tagHash(id, String(date));
+  return res.status(200).json({ tag: date, hash: hash });
 }
